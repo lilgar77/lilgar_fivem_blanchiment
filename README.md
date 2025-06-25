@@ -3,7 +3,7 @@
 <div align="center">
 
 ![Status](https://img.shields.io/badge/status-en%20développement-yellow)
-![Version](https://img.shields.io/badge/version-0.1.0-blue)
+![Version](https://img.shields.io/badge/version-0.0.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
 </div>
@@ -54,7 +54,7 @@ Config.Fees = { min = 10, max = 20 }
 ## 📝 À venir
 
 - [ ] Plusieurs points de blanchiment selon la dangerosité (frais plus élevés dans les zones sûres)
-- [ ] PNJ qui se déplace périodiquement mais reste dans une zone définie
+- [X] PNJ qui se déplace périodiquement mais reste dans une zone définie
 - [ ] Risque de raids de police pour le blanchiment de gros montants
 - [ ] Intégration avec d'autres scripts populaires
 

@@ -6,6 +6,9 @@ local isNearPed = false
 local blanchimentMenu = RageUI.CreateMenu(Config.Texts.menuTitle, Config.Texts.menuSubtitle)
 local montantABlanchir = 0
 local processing = false
+local currentPosition = 2 -- Position initiale (index dans Config.MovementZone.positions)
+local lastPositionChange = 0 -- Timestamp du dernier changement de position
+local nextChangeTime = 0 -- Timestamp du prochain changement de position
 
 -- Initialisation du framework
 CreateThread(function()
@@ -44,12 +47,20 @@ CreateThread(function()
         end)
     end
     
-    -- Création du PNJ
-    CreateBlanchisseurPed()
+    -- Création du PNJ à la position initiale
+    CreateBlanchisseurPed(2) -- L'index 2 correspond à la position initiale dans notre configuration
+    
+    -- Démarrer le thread de déplacement
+    StartPedMovementThread()
 end)
 
--- Création du PNJ
-function CreateBlanchisseurPed()
+-- Création du PNJ à la position spécifiée
+function CreateBlanchisseurPed(positionIndex)
+    -- Supprimer l'ancien PNJ s'il existe
+    if DoesEntityExist(blanchisseurPed) then
+        DeleteEntity(blanchisseurPed)
+    end
+
     -- Chargement du modèle
     local pedModel = GetHashKey(Config.PedModel)
     RequestModel(pedModel)
@@ -57,15 +68,29 @@ function CreateBlanchisseurPed()
         Wait(1)
     end
     
+    -- Déterminer la position
+    local position = Config.MovementZone.positions[positionIndex]
+    
     -- Création du PNJ
-    blanchisseurPed = CreatePed(4, pedModel, Config.Position.x, Config.Position.y, Config.Position.z, Config.Position.h, false, true)
-    SetEntityHeading(blanchisseurPed, Config.Position.h)
+    blanchisseurPed = CreatePed(4, pedModel, position.x, position.y, position.z, position.h, false, true)
+    SetEntityHeading(blanchisseurPed, position.h)
     FreezeEntityPosition(blanchisseurPed, true)
     SetEntityInvincible(blanchisseurPed, true)
     SetBlockingOfNonTemporaryEvents(blanchisseurPed, true)
     
     -- Animation idle
     TaskStartScenarioInPlace(blanchisseurPed, "WORLD_HUMAN_CLIPBOARD", 0, true)
+    
+    -- Définir le moment du prochain changement de position
+    local changeInterval = math.random(Config.MovementZone.changeTime.min, Config.MovementZone.changeTime.max) * 60 -- Conversion en secondes
+    lastPositionChange = GetGameTimer()
+    nextChangeTime = lastPositionChange + (changeInterval * 1000) -- Conversion en millisecondes
+    
+    currentPosition = positionIndex
+    
+    if Config.Debug then
+        print("PNJ de blanchiment créé à la position " .. positionIndex)
+    end
 end
 
 -- Configuration du menu RageUI
@@ -91,6 +116,68 @@ CreateThread(function()
         end
     end
 end)
+
+-- Thread pour gérer le déplacement périodique du PNJ
+function StartPedMovementThread()
+    CreateThread(function()
+        while true do
+            Wait(10000) -- Vérifie toutes les 10 secondes
+            
+            -- Vérifier s'il est temps de changer de position
+            local currentTime = GetGameTimer()
+            if currentTime > nextChangeTime then
+                -- Choisir une nouvelle position aléatoire différente de la position actuelle
+                local newPosition = currentPosition
+                while newPosition == currentPosition do
+                    newPosition = math.random(1, #Config.MovementZone.positions)
+                end
+                
+                -- Notifier les joueurs proches si activé
+                if Config.MovementZone.notifyChange then
+                    local playerPed = PlayerPedId()
+                    local playerCoords = GetEntityCoords(playerPed)
+                    local pedCoords = GetEntityCoords(blanchisseurPed)
+                    local distance = #(playerCoords - pedCoords)
+                    
+                    if distance < 50.0 then
+                        if Config.Framework == "esx" then
+                            ESX.ShowNotification("Le blanchisseur a changé de position. Retrouvez-le ailleurs.") 
+                        elseif Config.Framework == "qbcore" then
+                            QBCore.Functions.Notify("Le blanchisseur a changé de position. Retrouvez-le ailleurs.", "info")
+                        end
+                    end
+                end
+                
+                -- Déplacer le PNJ
+                CreateBlanchisseurPed(newPosition)
+                
+                -- Ajouter un blip temporaire si le joueur était proche
+                local playerPed = PlayerPedId()
+                local playerCoords = GetEntityCoords(playerPed)
+                local pedCoords = GetEntityCoords(blanchisseurPed)
+                local distance = #(playerCoords - pedCoords)
+                
+                if distance < 100.0 then
+                    local newPosition = Config.MovementZone.positions[newPosition]
+                    local blip = AddBlipForCoord(newPosition.x, newPosition.y, newPosition.z)
+                    SetBlipSprite(blip, 500) -- Icone d'argent
+                    SetBlipColour(blip, 2) -- Vert
+                    SetBlipAsShortRange(blip, true)
+                    BeginTextCommandSetBlipName("STRING")
+                    AddTextComponentString("Blanchisseur")
+                    EndTextCommandSetBlipName(blip)
+                    
+                    -- Supprimer le blip après 60 secondes
+                    SetTimeout(60000, function() RemoveBlip(blip) end)
+                end
+                
+                if Config.Debug then
+                    print("PNJ déplacé vers la position " .. newPosition)
+                end
+            end
+        end
+    end)
+end
 
 -- Thread pour afficher le marqueur et le texte d'aide
 CreateThread(function()
@@ -151,6 +238,7 @@ function OpenBlanchimentMenu()
                                 -- Afficher un message de confirmation
                                 ESX.ShowNotification(string.format(Config.Texts.fees, fees))
                                 ESX.ShowNotification(string.format(Config.Texts.youWillReceive, amountAfterFees))
+                                
                                 
                                 -- Trigger côté serveur pour vérifier si le joueur a l'argent sale
                                 TriggerServerEvent('lilgar_blanchiment:blanchirArgent', montantABlanchir)
