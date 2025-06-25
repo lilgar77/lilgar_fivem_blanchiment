@@ -1,4 +1,4 @@
-# 💰 Lilgar FiveM Blanchiment
+# 💰 LILGAR FiveM Blanchiment
 
 <div align="center">
 
