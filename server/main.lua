@@ -80,6 +80,19 @@ AddEventHandler('lilgar_blanchiment:blanchirArgent', function(amount)
             -- Log (optionnel)
             print(string.format("Joueur %s a blanchi %s$ et reçu %s$ après frais de %s%%", 
                 GetPlayerName(_source), amount, amountAfterFees, fees))
+            
+            -- Alerter la police pour les gros montants
+            if Config.PoliceAlert.enabled and amount >= Config.PoliceAlert.threshold then
+                local playerPed = GetPlayerPed(_source)
+                local playerCoords = GetEntityCoords(playerPed)
+                
+                if Config.Debug then
+                    print("Alerte de police déclenchée pour un blanchiment de " .. amount .. "$")
+                end
+                
+                -- Alerter tous les policiers connectés
+                AlertPolice(playerCoords, amount)
+            end
         end)
     else
         if Config.Framework == "esx" then
@@ -104,5 +117,37 @@ function sendToDiscord(name, message, color)
             }
         }
         PerformHttpRequest(Config.DiscordWebhook, function(err, text, headers) end, 'POST', json.encode({embeds = embed}), { ['Content-Type'] = 'application/json' })
+    end
+end
+
+-- Fonction pour alerter la police lors d'un blanchiment important
+function AlertPolice(coords, amount)
+    if Config.Framework == "esx" then
+        -- ESX version
+        local xPlayers = ESX.GetPlayers()
+        
+        for i=1, #xPlayers, 1 do
+            local xPlayer = ESX.GetPlayerFromId(xPlayers[i])
+            if xPlayer.job.name == Config.PoliceAlert.jobName then
+                -- Envoyer une notification au policier
+                TriggerClientEvent('esx:showNotification', xPlayers[i], Config.Texts.policeAlert)
+                
+                -- Créer un blip approximatif sur la carte
+                TriggerClientEvent('lilgar_blanchiment:createPoliceBlip', xPlayers[i], coords, amount)
+            end
+        end
+    elseif Config.Framework == "qbcore" then
+        -- QBCore version
+        local Players = QBCore.Functions.GetQBPlayers()
+        
+        for _, Player in pairs(Players) do
+            if Player.PlayerData.job.name == Config.PoliceAlert.jobName then
+                -- Envoyer une notification au policier
+                TriggerClientEvent('QBCore:Notify', Player.PlayerData.source, Config.Texts.policeAlert, "error")
+                
+                -- Créer un blip approximatif sur la carte
+                TriggerClientEvent('lilgar_blanchiment:createPoliceBlip', Player.PlayerData.source, coords, amount)
+            end
+        end
     end
 end

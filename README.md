@@ -26,6 +26,7 @@ Les frais de blanchiment diminuent progressivement en fonction du montant blanch
 - ⏱️ Animation et temps de traitement réalistes
 - 🔧 Hautement configurable (emplacement, frais, textes, etc.)
 - 🔄 Compatible avec ESX et QBCore
+- 🚨 Système d'alerte à la police pour les blanchiments de montants importants
 
 ## 🛠️ Installation
 
@@ -55,8 +56,8 @@ Config.Fees = { min = 10, max = 20 }
 
 - [ ] Plusieurs points de blanchiment selon la dangerosité (frais plus élevés dans les zones sûres)
 - [X] PNJ qui se déplace périodiquement mais reste dans une zone définie
-- [ ] Risque de raids de police pour le blanchiment de gros montants
-- [ ] Intégration avec d'autres scripts populaires
+- [X] Alerte automatique à la police pour les blanchiments de montants importants
+- [ ] Amélioration du système de police avec intervention de PNJ policiers
 
 ## 📃 Licence
 

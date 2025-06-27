@@ -325,3 +325,53 @@ if Config.Debug then
         end
     end)
 end
+
+-- Événement pour créer un blip d'alerte pour la police
+RegisterNetEvent('lilgar_blanchiment:createPoliceBlip')
+AddEventHandler('lilgar_blanchiment:createPoliceBlip', function(coords, amount)
+    -- Ajouter une légère variation aux coordonnées pour ne pas révéler la position exacte
+    local randomOffset = Config.PoliceAlert.blipRadius / 2
+    local randomX = coords.x + math.random(-randomOffset, randomOffset)
+    local randomY = coords.y + math.random(-randomOffset, randomOffset)
+    
+    -- Créer un blip sur la carte pour les policiers
+    local blip = AddBlipForRadius(randomX, randomY, coords.z, Config.PoliceAlert.blipRadius)
+    SetBlipHighDetail(blip, true)
+    SetBlipColour(blip, 1) -- Rouge
+    SetBlipAlpha(blip, 128)
+    
+    -- Créer un blip central pour le marker
+    local centerBlip = AddBlipForCoord(randomX, randomY, coords.z)
+    SetBlipSprite(centerBlip, 161) -- Sprite de l'activité criminelle
+    SetBlipColour(centerBlip, 1) -- Rouge
+    SetBlipScale(centerBlip, 1.0)
+    SetBlipAsShortRange(centerBlip, false)
+    
+    BeginTextCommandSetBlipName("STRING")
+    AddTextComponentString(Config.Texts.moneyLaundering)
+    EndTextCommandSetBlipName(centerBlip)
+    
+    -- Jouer un son d'alerte pour le policier
+    PlaySound(-1, "Lose_1st", "GTAO_FM_Events_Soundset", 0, 0, 1)
+    
+    -- Message supplémentaire avec le montant approximatif
+    local amountCategory = "important"
+    if amount > 200000 then
+        amountCategory = "extrêmement important"
+    elseif amount > 100000 then
+        amountCategory = "très important"
+    end
+    
+    -- Envoyer un message spécifique selon le framework
+    if Config.Framework == "esx" then
+        ESX.ShowNotification("Blanchiment d'argent " .. amountCategory .. " en cours. Vérifiez votre carte.")
+    elseif Config.Framework == "qbcore" then
+        QBCore.Functions.Notify("Blanchiment d'argent " .. amountCategory .. " en cours. Vérifiez votre carte.", "error")
+    end
+    
+    -- Supprimer le blip après un certain temps
+    Citizen.SetTimeout(Config.PoliceAlert.blipDuration, function()
+        RemoveBlip(blip)
+        RemoveBlip(centerBlip)
+    end)
+end)

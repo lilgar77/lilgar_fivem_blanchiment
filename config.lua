@@ -47,6 +47,15 @@ Config.Framework = "esx" -- "esx" ou "qbcore"
 -- Debug Mode (affiche des messages dans la console)
 Config.Debug = true
 
+-- Système d'alerte de police
+Config.PoliceAlert = {
+    enabled = true,           -- Activer/désactiver les alertes de police
+    threshold = 50000,        -- Montant à partir duquel une alerte est envoyée
+    jobName = "police",      -- Nom du job de police
+    blipDuration = 60000,    -- Durée du blip sur la carte (en ms)
+    blipRadius = 100.0       -- Rayon du blip (cercle approximatif pour ne pas donner la position exacte)
+}
+
 -- Textes dans les notifications et le menu
 Config.Texts = {
     menuTitle = "Blanchiment d'argent by LILGAR",
@@ -58,5 +67,8 @@ Config.Texts = {
     notEnoughDirtyMoney = "Vous n'avez pas assez d'argent sale",
     enterAmount = "Entrez le montant à blanchir",
     fees = "Frais appliqués: %s%%",
-    youWillReceive = "Vous recevrez: $%s"
+    youWillReceive = "Vous recevrez: $%s",
+    -- Messages d'alerte pour la police
+    policeAlert = "Une activité suspecte de blanchiment a été signalée",
+    moneyLaundering = "Blanchiment d'argent signalé"
 }
